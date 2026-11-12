@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'" />
+    <title>Welcome to Blink</title>
+    <link rel="stylesheet" href="welcome.css" />
+  </head>
+  <body>
+    <header class="intro">
+      <h1>Welcome to Blink</h1>
+      <p id="status" class="status" aria-live="polite">Checking permissions…</p>
+    </header>
+
+    <main>
+      <ul id="steps" class="steps"></ul>
+      <button id="check" type="button" class="check">Check access</button>
+    </main>
+
+    <footer>
+      <p class="footnote">Screen recording changes take effect after Blink restarts.</p>
+      <button id="restart" type="button" class="restart">Restart Blink</button>
+      <button id="later" type="button" class="later">Not now</button>
+    </footer>
+
+    <script type="module" src="welcome.js"></script>
+  </body>
+</html>

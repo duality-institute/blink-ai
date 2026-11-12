@@ -1,0 +1,74 @@
+{
+  "name": "@dualityinstitute/blink-ai",
+  "productName": "Blink",
+  "version": "0.1.3",
+  "description": "Local macOS screenshot and meeting copilot for Claude Code, Codex, and OpenCode",
+  "type": "module",
+  "main": "dist/electron/main.js",
+  "bin": {
+    "blink-ai": "dist/cli.js"
+  },
+  "files": [
+    "assets/",
+    "dist/cli.js",
+    "dist/electron/",
+    "vendor/Blink.app/",
+    "README.md"
+  ],
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "os": [
+    "darwin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duality-institute/blink-ai.git"
+  },
+  "homepage": "https://github.com/duality-institute/blink-ai#readme",
+  "bugs": {
+    "url": "https://github.com/duality-institute/blink-ai/issues"
+  },
+  "keywords": [
+    "screenshots",
+    "meeting-copilot",
+    "claude-code",
+    "codex",
+    "opencode",
+    "electron",
+    "macos"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "check": "tsc --noEmit && bun scripts/check-core-isolation.ts",
+    "verify": "bun run check && bun test && bun run build",
+    "clean": "rm -rf dist",
+    "build": "bun run clean && bun run build:native && bun run build:main && bun run build:preload && bun run build:renderer && bun run build:cli",
+    "build:native": "bun scripts/build-native.ts",
+    "build:main": "bun build src/electron/main.ts --target=node --outdir=dist/electron --external electron",
+    "build:preload": "bun build src/electron/preload.ts --target=node --format=cjs --outfile=dist/electron/preload.cjs --external electron",
+    "build:renderer": "bun build src/electron/renderer/popup.ts src/electron/renderer/presenter.ts src/electron/renderer/settings.ts src/electron/renderer/welcome.ts --target=browser --outdir=dist/electron/renderer && bun scripts/copy-renderer-assets.ts",
+    "build:cli": "bun build src/cli.ts --target=bun --outfile=dist/cli.js --external electron",
+    "prepublishOnly": "bun run verify"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.7.0",
+    "@opencode-ai/sdk": "1.18.18",
+    "dompurify": "3.4.13",
+    "electron": "41.10.5",
+    "ky": "2.1.0",
+    "marked": "13.0.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "@types/node": "24.9.0",
+    "playwright": "1.55.1",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "bun": ">=1.0.17",
+    "node": ">=22.12.0"
+  }
+}

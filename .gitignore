@@ -1,0 +1,15 @@
+.env
+.idea
+.omo
+node_modules/
+dist/
+*.tgz
+*.log
+.DS_Store
+native/*/.build/
+.playwright-mcp/
+.codegraph/
+.env.*
+!.env.example
+assets/seedance-dark/
+test_token.md

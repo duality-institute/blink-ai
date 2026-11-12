@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; font-src 'self'; connect-src 'none';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blink Presenter Notes</title>
+    <link rel="stylesheet" href="./presenter.css" />
+  </head>
+  <body>
+    <main id="app" class="shell" data-mode="edit">
+      <header class="toolbar">
+        <div class="identity">
+          <span class="window-title">Blink / Presenter</span>
+        </div>
+
+        <div class="toolbar-actions">
+          <label class="privacy-control" title="Hide all Blink windows from screen capture">
+            <input
+              id="privacy"
+              type="checkbox"
+              aria-label="Hide Blink windows from screen capture"
+            />
+            <span class="privacy-indicator" aria-hidden="true"></span>
+            <span id="privacy-label">Visible</span>
+          </label>
+          <button id="mode-toggle" class="primary-button" type="button">Present</button>
+          <button
+            id="close"
+            class="icon-button"
+            type="button"
+            title="Hide notes"
+            aria-label="Hide presenter notes"
+          >×</button>
+        </div>
+      </header>
+
+      <section id="editor-view" class="editor-view" aria-label="Markdown editor">
+        <div class="editor-intro">
+          <h1>Write Markdown Below</h1>
+        </div>
+        <textarea
+          id="editor"
+          aria-label="Presenter notes in Markdown"
+          spellcheck="true"
+        ></textarea>
+        <footer class="editor-footer">
+          <span id="save-status" class="save-status" role="status" aria-live="polite">Saved locally</span>
+          <span id="word-count" class="word-count">0 words</span>
+        </footer>
+      </section>
+
+      <section
+        id="present-view"
+        class="present-view"
+        aria-label="Rendered presentation"
+        tabindex="0"
+        hidden
+      >
+        <article id="preview" class="stage markdown"></article>
+        <div id="empty-stage" class="empty-stage" hidden>
+          <h1>No notes yet.</h1>
+        </div>
+      </section>
+      <footer class="action-footer" aria-label="Keyboard shortcuts">
+        <span>Scroll up <kbd>⇧⌘↑</kbd></span>
+        <span>Scroll down <kbd>⇧⌘↓</kbd></span>
+      </footer>
+    </main>
+    <script src="./presenter.js"></script>
+  </body>
+</html>

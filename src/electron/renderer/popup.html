@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; font-src 'self'; connect-src 'none';" />
+    <title>Blink</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main id="root" class="card state-idle" aria-live="polite">
+      <header class="card-header" role="banner">
+        <div class="identity">
+          <span class="window-title">Blink</span>
+          <span class="product-context">AI meeting copilot</span>
+        </div>
+        <div class="header-actions">
+          <div class="mode-control" id="mode-control">
+            <span class="mode-indicator" aria-hidden="true"></span>
+            <select id="mode" class="mode-select" aria-label="Capture mode"
+              title="Choose what Blink captures. Monitor and Meeting cannot run together.">
+              <option value="off">Off</option>
+              <option value="monitor">Monitor</option>
+              <option value="meeting">Meeting</option>
+            </select>
+            <span class="mode-value" id="mode-label" aria-hidden="true">Off</span>
+            <svg class="mode-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+          </div>
+          <button
+            id="privacy"
+            class="privacy-btn"
+            type="button"
+            role="switch"
+            aria-checked="false"
+            aria-label="Hide Blink windows from screen capture"
+          >
+            <svg class="privacy-icon privacy-icon-private" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M3 3l14 14" />
+              <path d="M8.2 4.3A7.6 7.6 0 0 1 10 4.1c4 0 7 3.4 7.6 5.9a9.6 9.6 0 0 1-2.2 3.6M5.4 5.9A10 10 0 0 0 2.4 10c.6 2.5 3.6 5.9 7.6 5.9a7.7 7.7 0 0 0 3-.6" />
+              <path d="M8.1 8.3a2.6 2.6 0 0 0 3.6 3.6" />
+            </svg>
+            <svg class="privacy-icon privacy-icon-visible" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M2.4 10C3 7.5 6 4.1 10 4.1s7 3.4 7.6 5.9c-.6 2.5-3.6 5.9-7.6 5.9S3 12.5 2.4 10Z" />
+              <circle cx="10" cy="10" r="2.6" />
+            </svg>
+            <span id="privacy-label">Visible</span>
+          </button>
+          <button
+            id="abort"
+            class="stop-btn"
+            type="button"
+            title="Stop current answer"
+            aria-label="Stop current answer"
+            hidden
+          >Stop</button>
+          <button
+            id="close"
+            class="close-btn"
+            type="button"
+            title="Dismiss"
+            aria-label="Dismiss"
+          >×</button>
+        </div>
+      </header>
+
+      <div class="runtime-error" id="runtime-error" hidden role="alert">
+        <span class="runtime-error-text" id="runtime-error-text"></span>
+        <button type="button" class="runtime-error-close" id="runtime-error-close" aria-label="Dismiss">×</button>
+      </div>
+
+      <div class="response-context">
+        <div class="source" id="source">
+          <span class="source-label">Ready for a message or screenshot</span>
+        </div>
+        <div class="status-group">
+          <span class="pill reconciled-pill" id="reconciled-pill" hidden aria-hidden="true">recovered</span>
+          <span class="pill stopped-pill" id="stopped-pill" hidden aria-hidden="true">stopped</span>
+        </div>
+      </div>
+
+      <div class="meeting-budget" id="meeting-budget" hidden role="status">
+        <span class="meeting-budget-text" id="meeting-budget-text"></span>
+      </div>
+
+      <div class="session-note" id="session-note" hidden role="status">Session limit reached — new session started.</div>
+
+      <div class="meeting-context" id="meeting-context" hidden>
+        <textarea id="message-input" class="message-input" rows="2" maxlength="16000"
+          aria-label="Message to Blink" placeholder="Ask a question or add instructions for your screenshots…"
+          aria-keyshortcuts="Control+Meta+Enter Shift+Meta+Enter"></textarea>
+        <div
+          class="meeting-context-summary"
+          id="meeting-context-summary"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="context-copy" id="context-copy">No context yet</span>
+        </div>
+        <button id="ask-meeting" class="ask-btn" type="button"
+          title="Send text and staged images (⌃⌘Return or ⇧⌘Return)"
+          aria-label="Ask Blink using current context" aria-keyshortcuts="Control+Meta+Enter Shift+Meta+Enter" disabled>Ask</button>
+      </div>
+
+      <div class="workspace" id="workspace">
+      <aside
+        class="transcript-panel"
+        id="transcript-panel"
+        aria-label="Live meeting transcript"
+        hidden
+      >
+        <div class="transcript-heading">
+          <span class="transcript-heading-label">Live transcript</span>
+          <span class="transcript-count" id="transcript-count"></span>
+        </div>
+        <div class="transcript-scroll" id="transcript-scroll">
+          <div class="transcript-lines" id="transcript-lines"></div>
+          <div class="transcript-volatile" id="transcript-volatile"></div>
+        </div>
+      </aside>
+
+      <section class="card-body" id="body">
+        <div class="answering" id="answering" hidden>
+          <span class="shimmer-line shimmer-line-1"></span>
+          <span class="shimmer-line shimmer-line-2"></span>
+          <span class="shimmer-line shimmer-line-3"></span>
+          <span class="answering-label">answering…</span>
+        </div>
+        <article
+          class="answer markdown"
+          id="answer"
+          role="article"
+          aria-label="Answer"
+        ></article>
+        <div class="error" id="error" hidden role="alert">
+          <div class="error-title">Answer failed</div>
+          <div class="error-message" id="error-message"></div>
+        </div>
+      </section>
+      </div>
+      <footer class="action-footer" aria-label="Keyboard shortcuts">
+        <span>Region <kbd>⇧⌘2</kbd></span>
+        <span>Screen <kbd>⇧⌘1</kbd></span>
+        <span>Clear images <kbd>⇧⌘0</kbd></span>
+        <span title="Ctrl+Cmd+Enter or Shift+Cmd+Enter">Ask <kbd>⌃⌘↵</kbd></span>
+        <span title="Snap to seven positions. Left/right moves across the top or bottom row; up/down passes through center in the middle column.">Move <kbd>⌘↑↓←→</kbd></span>
+      </footer>
+    </main>
+    <script src="./popup.js"></script>
+  </body>
+</html>

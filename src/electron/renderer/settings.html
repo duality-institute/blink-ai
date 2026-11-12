@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'" />
+    <title>Blink</title>
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <header class="titlebar">
+      <nav class="tabs" role="tablist">
+        <button id="tab-prompts" role="tab" aria-selected="true" aria-controls="panel-prompts">Custom Prompts</button>
+        <button id="tab-answers" role="tab" aria-selected="false" aria-controls="panel-answers">Answer Log</button>
+        <button id="tab-transcripts" role="tab" aria-selected="false" aria-controls="panel-transcripts">Meeting Transcripts</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="panel-prompts" role="tabpanel" aria-labelledby="tab-prompts">
+        <p class="lede">
+          Switch a prompt to Custom to replace Blink's built-in instruction.
+        </p>
+
+        <div class="field">
+          <div class="field-head">
+            <div>
+              <span class="label">Screenshot answers</span>
+              <span class="hint">Used for every Monitor capture.</span>
+            </div>
+            <div class="mode" role="radiogroup" aria-label="Screenshot prompt mode">
+              <button id="monitor-default" type="button" role="radio" aria-checked="true" class="is-active">Default</button>
+              <button id="monitor-custom" type="button" role="radio" aria-checked="false">Custom</button>
+            </div>
+          </div>
+          <textarea id="monitor-prompt" rows="5" spellcheck="false" aria-label="Screenshot prompt"></textarea>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <div>
+              <span class="label">Meeting answers</span>
+              <span class="hint">Used when you Ask during a meeting. The transcript is appended automatically.</span>
+            </div>
+            <div class="mode" role="radiogroup" aria-label="Meeting prompt mode">
+              <button id="meeting-default" type="button" role="radio" aria-checked="true" class="is-active">Default</button>
+              <button id="meeting-custom" type="button" role="radio" aria-checked="false">Custom</button>
+            </div>
+          </div>
+          <textarea id="meeting-prompt" rows="5" spellcheck="false" aria-label="Meeting prompt"></textarea>
+        </div>
+
+        <div class="actions">
+          <span id="saved" class="saved" hidden>Saved</span>
+          <button id="save" class="primary" type="button">Save</button>
+        </div>
+      </section>
+
+      <section id="panel-answers" role="tabpanel" aria-labelledby="tab-answers" hidden>
+        <div class="toolbar">
+          <input id="search" type="search" placeholder="Search answers…" autocomplete="off" spellcheck="false" />
+          <select id="day" aria-label="Filter by date">
+            <option value="recent">Latest 20</option>
+          </select>
+          <select id="source" aria-label="Filter by source">
+            <option value="all">All sources</option>
+            <option value="monitor">Monitor</option>
+            <option value="meeting">Meeting</option>
+          </select>
+        </div>
+        <p id="count" class="count"></p>
+        <ul id="answers" class="answers"></ul>
+        <p id="empty" class="empty" hidden>No answers yet.</p>
+      </section>
+
+      <section id="panel-transcripts" role="tabpanel" aria-labelledby="tab-transcripts" hidden>
+        <div class="toolbar">
+          <input id="tx-search" type="search" placeholder="Search every transcript…" autocomplete="off" spellcheck="false" />
+          <select id="tx-day" aria-label="Filter by date">
+            <option value="all">All dates</option>
+          </select>
+        </div>
+        <p id="tx-count" class="count"></p>
+        <div class="tx-split">
+          <ul id="tx-list" class="tx-list" role="listbox" aria-label="Meeting sessions"></ul>
+          <article id="tx-view" class="tx-view markdown" aria-live="polite"></article>
+        </div>
+        <p id="tx-empty" class="empty" hidden>No meeting transcripts yet.</p>
+      </section>
+    </main>
+
+    <script type="module" src="settings.js"></script>
+  </body>
+</html>
