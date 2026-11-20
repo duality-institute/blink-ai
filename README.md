@@ -28,12 +28,25 @@ Then start the app:
 blink-ai
 ```
 
-Claude Code and Codex use their CLI's configured model. For OpenCode, choose an
-available vision-capable model:
+Claude Code and Codex use their CLI's configured model. When you choose OpenCode,
+Blink keeps your saved model or uses the default `model` configured in OpenCode
+on this machine. Setup checks that `opencode models` lists it before saving.
+
+To change Blink's OpenCode model, run the commands below. Copy a vision-capable
+`provider/model` ID from the list and paste it at the prompt:
 
 ```bash
-blink-ai configure --backend opencode --model provider/model
+opencode models
+blink-ai set-model
 ```
+
+You can also pass the ID directly: `blink-ai set-model provider/model`. Restart
+Blink to apply the change. This doesn't change OpenCode's own default.
+
+If setup can't find an available default, edit Blink's `config.json` at the path
+shown in the error (normally `~/.blink-ai/config.json`). Set `"backend": "opencode"`
+and `"model"` to the ID you copied, then rerun install. Alternatively, pass
+`--backend opencode --model provider/model` to the install command.
 
 ## First launch setup
 

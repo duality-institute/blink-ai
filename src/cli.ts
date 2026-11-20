@@ -1,25 +1,18 @@
 #!/usr/bin/env bun
 
-import {
-  cancel,
-  intro,
-  isCancel,
-  outro,
-  select,
-} from "@clack/prompts";
+import { outro } from "@clack/prompts";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { z } from "zod";
 import { findExecutable } from "./backends/process-runner";
-import { getConfigPath, loadConfig, saveConfig, selectBackend } from "./core/config";
+import { configureBackend, selectedBackend, setModel } from "./cli-backend";
+import { getConfigPath, loadConfig } from "./core/config";
 import {
   BACKEND_COMMANDS,
   BACKEND_LABELS,
-  BLINK_BACKENDS,
   type BlinkBackend,
-  type BlinkConfig,
 } from "./core/types";
 import {
   BLINK_BUNDLE_ID,
@@ -34,6 +27,7 @@ import {
 import { ensureOnPath } from "./shell-path";
 
 export { BLINK_BUNDLE_ID };
+export { configureBackend, parseBackend } from "./cli-backend";
 
 const PackageMetadataSchema = z.object({ name: z.string(), version: z.string() });
 
@@ -43,29 +37,6 @@ const INSTALL_URLS: Readonly<Record<BlinkBackend, string>> = {
   claude: "https://code.claude.com/docs/en/setup",
 };
 
-export function parseBackend(value: string): BlinkBackend {
-  const normalized = value.trim().toLowerCase();
-  const backend = BLINK_BACKENDS.find((candidate) => candidate === normalized);
-  if (backend === undefined) {
-    throw new Error(`Unknown backend: ${value}. Choose opencode, codex, or claude.`);
-  }
-  return backend;
-}
-
-export function configureBackend(backend: BlinkBackend, args: string[] = []): BlinkConfig {
-  const config = selectBackend(loadConfig(), backend);
-  const model = optionValue(args, "--model");
-  const projectDir = optionValue(args, "--project-dir");
-  if (model !== undefined) config.model = model;
-  if (projectDir !== undefined) {
-    config.projectDir = path.resolve(
-      projectDir.startsWith("~") ? path.join(os.homedir(), projectDir.slice(1)) : projectDir,
-    );
-  }
-  saveConfig(config);
-  return config;
-}
-
 export async function runCli(args = process.argv.slice(2)): Promise<void> {
   const [command = "start", ...rest] = args;
   switch (command) {
@@ -74,6 +45,9 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
       return;
     case "configure":
       await configure(rest);
+      return;
+    case "set-model":
+      await setModel(rest);
       return;
     case "start":
       startApp();
@@ -107,7 +81,7 @@ export async function runCli(args = process.argv.slice(2)): Promise<void> {
 async function install(args: string[]): Promise<void> {
   const backend = await selectedBackend(args, loadConfig().backend);
   if (backend === null) return;
-  configureBackend(backend, args);
+  await configureBackend(backend, args);
   reportBackend(backend);
 
   let reload: string | null = null;
@@ -170,31 +144,9 @@ function applyPathSetup(): string | null {
 async function configure(args: string[]): Promise<void> {
   const backend = await selectedBackend(args, loadConfig().backend);
   if (backend === null) return;
-  configureBackend(backend, args);
+  await configureBackend(backend, args);
   reportBackend(backend);
   outro(`Updated ${getConfigPath()}. Restart Blink to apply it.`);
-}
-
-async function selectedBackend(
-  args: string[],
-  current: BlinkBackend,
-): Promise<BlinkBackend | null> {
-  const explicit = optionValue(args, "--backend");
-  if (explicit !== undefined) return parseBackend(explicit);
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    throw new Error("Interactive setup needs a terminal; pass --backend <name>.");
-  }
-  intro("Blink local backend setup");
-  const result = await select({
-    message: "Select an answer backend",
-    initialValue: current,
-    options: BLINK_BACKENDS.map((backend) => ({ value: backend, label: BACKEND_LABELS[backend] })),
-  });
-  if (isCancel(result)) {
-    cancel("Setup cancelled.");
-    return null;
-  }
-  return result;
 }
 
 function reportBackend(backend: BlinkBackend): void {
@@ -217,18 +169,6 @@ function doctor(): void {
   reportBundle();
 }
 
-function optionValue(args: string[], name: string): string | undefined {
-  const equals = args.find((arg) => arg.startsWith(`${name}=`));
-  if (equals !== undefined) return equals.slice(name.length + 1);
-  const index = args.indexOf(name);
-  if (index < 0) return undefined;
-  const value = args[index + 1];
-  if (value === undefined || value.startsWith("--")) {
-    throw new Error(`${name} requires a value`);
-  }
-  return value;
-}
-
 function readPackageMetadata(): z.infer<typeof PackageMetadataSchema> {
   const value: unknown = JSON.parse(
     fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"),
@@ -243,6 +183,7 @@ Usage:
   blink-ai                       Start Blink
   blink-ai install               Configure and register the blink-ai command
   blink-ai configure             Change the local answer backend
+  blink-ai set-model [id]        Set Blink's OpenCode model; run opencode models and paste a provider/model ID
   blink-ai doctor                Check config, app bundle, and backend availability
   blink-ai ungrant               Remove Blink's microphone and screen recording permissions
   blink-ai uninstall             Revoke permissions and uninstall Blink; keep saved data

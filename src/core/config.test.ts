@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { DEFAULT_OPENCODE_MODEL, getDefaults, loadConfig, saveConfig, selectBackend } from "./config";
+import { getDefaults, loadConfig, saveConfig, selectBackend } from "./config";
 
 describe("config", () => {
   let tempDir = "";
@@ -21,7 +21,7 @@ describe("config", () => {
     const config = loadConfig();
 
     expect(config.backend).toBe("opencode");
-    expect(config.model).toBe(DEFAULT_OPENCODE_MODEL);
+    expect(config.model).toBeUndefined();
     expect(Object.hasOwn(config, "sessionMode")).toBe(false);
     expect(config.hideFromCapture).toBe(true);
     expect(Object.hasOwn(config, "screenshotDir")).toBe(false);
@@ -94,9 +94,9 @@ describe("config", () => {
     const onDisk: unknown = JSON.parse(fs.readFileSync(configPath, "utf8"));
     expect(onDisk).toMatchObject({
       backend: "opencode",
-      model: DEFAULT_OPENCODE_MODEL,
       experimentalThing: "keep me",
     });
+    expect(onDisk).not.toHaveProperty("model");
   });
 
   it("leaves a complete config file byte-identical", () => {
@@ -168,7 +168,8 @@ describe("config", () => {
   });
 
   it("clears the previous backend model on disk when switching backends", () => {
-    const current = loadConfig();
+    const current = { ...loadConfig(), model: "example/vision" };
+    saveConfig(current);
 
     saveConfig(selectBackend(current, "codex"));
 

@@ -4,11 +4,8 @@ import * as path from "node:path";
 import { z } from "zod";
 import { BLINK_BACKENDS, type BlinkBackend, type BlinkConfig } from "./types";
 
-export const DEFAULT_OPENCODE_MODEL = "anthropic/claude-opus-5";
-
 const DEFAULTS: BlinkConfig = {
   backend: "opencode",
-  model: DEFAULT_OPENCODE_MODEL,
   hideFromCapture: true,
   showTranscript: true,
   monitorPrompt: "",
@@ -40,6 +37,26 @@ export function getConfigPath(): string {
   return path.join(getBlinkHome(), "config.json");
 }
 
+export async function ensureProjectDir(config: BlinkConfig): Promise<string> {
+  const directory = config.projectDir ?? path.join(getBlinkHome(), "scratch");
+  await fs.promises.mkdir(directory, { recursive: true });
+  return directory;
+}
+
+export const OPENCODE_MODEL_HINT = "Run `opencode models` and copy a vision-capable provider/model ID.";
+
+export class OpenCodeModelError extends Error {
+  override readonly name = "OpenCodeModelError";
+
+  constructor(reason: string) {
+    super(`${reason}\n${OPENCODE_MODEL_HINT} Edit ${getConfigPath()}: set "backend" to "opencode" and "model" to the copied ID, then retry. If Blink already uses OpenCode, you can paste the ID into \`blink-ai set-model\` instead.`);
+  }
+}
+
+export function isOpenCodeModelId(model: string): boolean {
+  return /^[^\s/]+(?:\/[^\s/]+)+$/u.test(model);
+}
+
 function expandTilde(filePath: string): string {
   return filePath.startsWith("~")
     ? path.join(os.homedir(), filePath.slice(1))
@@ -47,15 +64,12 @@ function expandTilde(filePath: string): string {
 }
 
 function validateModel(config: BlinkConfig): void {
-  if (config.model !== undefined && !NonEmptyStringSchema.safeParse(config.model).success) {
-    throw new ConfigFileError("model must be a non-empty string");
+  if (config.model === undefined) return;
+  if (config.backend === "opencode" && !isOpenCodeModelId(config.model)) {
+    throw new OpenCodeModelError("OpenCode model must use provider/model format.");
   }
-  if (config.backend === "opencode") {
-    const model = config.model ?? "";
-    const separator = model.indexOf("/");
-    if (separator < 1 || separator === model.length - 1) {
-      throw new ConfigFileError(`model must use provider/model format: ${model}`);
-    }
+  if (!NonEmptyStringSchema.safeParse(config.model).success) {
+    throw new ConfigFileError("model must be a non-empty string");
   }
 }
 
@@ -90,12 +104,12 @@ function readUserConfig(configPath: string): Record<string, unknown> {
   return parsed.data;
 }
 
-export function loadConfig(): BlinkConfig {
+export function loadConfig(purpose: "use" | "replace-opencode-model" = "use"): BlinkConfig {
   const blinkHome = getBlinkHome();
   const configPath = getConfigPath();
   fs.mkdirSync(blinkHome, { recursive: true });
   if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, JSON.stringify(DEFAULTS, null, 2));
+    if (purpose === "use") fs.writeFileSync(configPath, JSON.stringify(DEFAULTS, null, 2));
     return { ...DEFAULTS };
   }
 
@@ -109,11 +123,16 @@ export function loadConfig(): BlinkConfig {
     }
     merged.backend = backend.data;
   }
-  if (merged.backend !== "opencode") delete merged.model;
   for (const key of ["model", "projectDir"] as const) {
+    if (purpose === "replace-opencode-model" && merged.backend === "opencode" && key === "model") continue;
     if (user[key] === undefined) continue;
     const value = NonEmptyStringSchema.safeParse(user[key]);
-    if (!value.success) throw new ConfigFileError(`${key} must be a non-empty string`);
+    if (!value.success) {
+      if (key === "model" && merged.backend === "opencode") {
+        throw new OpenCodeModelError("OpenCode model must use provider/model format.");
+      }
+      throw new ConfigFileError(`${key} must be a non-empty string`);
+    }
     merged[key] = key === "projectDir" ? path.resolve(expandTilde(value.data)) : value.data;
   }
   if (user["hideFromCapture"] !== undefined) {
@@ -131,7 +150,7 @@ export function loadConfig(): BlinkConfig {
 
   const missing = Object.keys(merged).filter((key) => !(key in persisted));
   validateModel(merged);
-  if (missing.length > 0 || hadObsolete) {
+  if (purpose === "use" && (missing.length > 0 || hadObsolete)) {
     fs.writeFileSync(
       configPath,
       JSON.stringify({ ...persisted, ...merged }, null, 2),
@@ -164,19 +183,6 @@ export function selectBackend(
   backend: BlinkBackend,
 ): BlinkConfig {
   const selected: BlinkConfig = { ...config, backend };
-  if (backend === config.backend) return selected;
-  switch (backend) {
-    case "opencode":
-      selected.model = DEFAULT_OPENCODE_MODEL;
-      break;
-    case "claude":
-    case "codex":
-      delete selected.model;
-      break;
-    default: {
-      const unreachable: never = backend;
-      throw new ConfigFileError(`Unknown backend: ${String(unreachable)}`);
-    }
-  }
+  if (backend !== config.backend) delete selected.model;
   return selected;
 }

@@ -37,18 +37,18 @@ describe("Blink CLI", () => {
     expect(() => parseBackend("other")).toThrow(/Unknown backend/);
   });
 
-  it("writes the selected backend and removes incompatible model defaults", () => {
-    configureBackend("codex");
+  it("writes the selected backend and removes incompatible model defaults", async () => {
+    await configureBackend("codex");
     const config = loadConfig();
     expect(config.backend).toBe("codex");
     expect(config.model).toBeUndefined();
     expect(fs.existsSync(path.join(home, "config.json"))).toBe(true);
   });
 
-  it("keeps desktop preferences when changing the local backend", () => {
+  it("keeps desktop preferences when changing the local backend", async () => {
     saveConfig({ ...loadConfig(), showTranscript: false, monitorPrompt: "custom instruction" });
 
-    configureBackend("claude");
+    await configureBackend("claude");
 
     expect(loadConfig()).toMatchObject({ backend: "claude", showTranscript: false, monitorPrompt: "custom instruction" });
   });

@@ -1,13 +1,12 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import type { AnswerClient, AnswerPrompts } from "../core/answer-client";
-import { getBlinkHome } from "../core/config";
+import { ensureProjectDir } from "../core/config";
 import type { BlinkConfig } from "../core/types";
 import { ClaudeClient } from "./claude-client";
 import { CodexClient } from "./codex-client";
 import { LocalAnswerClient } from "./local-answer-client";
 import { resolvePrompts, type LocalEngine } from "./local-engine";
 import { OpenCodeClient } from "./opencode-client";
+import { resolveOpenCodeModel } from "./opencode-model";
 import { OpenCodeProcess } from "./opencode-process";
 
 export class LocalAnswerConfigError extends Error {
@@ -23,8 +22,7 @@ type Backend = {
 export async function createLocalAnswerClient(
   config: BlinkConfig,
 ): Promise<AnswerClient> {
-  const projectDir = config.projectDir ?? path.join(getBlinkHome(), "scratch");
-  await fs.promises.mkdir(projectDir, { recursive: true });
+  const projectDir = await ensureProjectDir(config);
   const prompts = resolvePrompts({
     monitor: config.monitorPrompt,
     meeting: config.meetingPrompt,
@@ -50,7 +48,7 @@ async function startBackend(
     case "codex":
       return { label: "Codex", engine: () => new CodexClient({ prompts, projectDir, model }) };
     case "opencode": {
-      const openCodeModel = parseOpenCodeModel(model);
+      const openCodeModel = parseOpenCodeModel(model ?? await resolveOpenCodeModel(undefined, projectDir));
       const server = new OpenCodeProcess({
         binary: "opencode",
         port: 0,
